@@ -104,4 +104,22 @@ SD.Callback.Register('sd_lib:getGender', function(source)
     return(gender)
 end)
 
+-- Register a callback to get the full name of the target player, on client
+SD.Callback.Register('sd_lib:getFullName', function(source)
+    local fullName = SD.GetFullName(source)
+    return(fullName)
+end)
+
+-- Register a callback to get the first name
+SD.Callback.Register('sd_lib:getFirstName', function(source)
+    local firstName = SD.GetFirstName(source)
+    return(firstName)
+end)
+
+-- Register a callback to get the last name
+SD.Callback.Register('sd_lib:getLastName', function(source)
+    local lastName = SD.GetLastName(source)
+    return(lastName)
+end)
+
 SD.CheckVersion('Samuels-Development/sd_lib') -- Check version of specified resource

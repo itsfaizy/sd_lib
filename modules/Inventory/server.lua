@@ -5,6 +5,8 @@ local codemInv = 'codem-inventory'
 local oxInv = 'ox_inventory'
 local qbInv = 'qb-inventory'
 local qsInv = 'qs-inventory'
+local qsProInv = 'qs-inventory-pro'
+local origenInv = 'origen_inventory'
 
 local inventorySystem
 if GetResourceState(codemInv) == 'started' then
@@ -13,8 +15,12 @@ elseif GetResourceState(oxInv) == 'started' then
     inventorySystem = 'ox'
 elseif GetResourceState(qbInv) == 'started' then
     inventorySystem = 'qb'
+elseif GetResourceState(qsProInv) == 'started' then
+    inventorySystem = 'qs-pro'
 elseif GetResourceState(qsInv) == 'started' then
     inventorySystem = 'qs'
+elseif GetResourceState(origenInv) == 'started' then
+    inventorySystem = 'origen'
 end
 
 --- Dynamically selects the appropriate function to check if a player has an item.
@@ -33,11 +39,19 @@ local HasItem = function()
             local itemAmount = exports[qbInv]:GetItemCount(source, item)
             return itemAmount or 0
         end
+    elseif inventorySystem == 'qs-pro' then
+        return function(player, item, source)
+            return exports[qsProInv]:GetItemTotalAmount(source, item)
+        end
     elseif inventorySystem == 'qs' then
         return function(player, item, source)
             local itemData = exports[qsInv]:GetItemByName(source, item)
             if not itemData then return 0 end
             return itemData.amount or itemData.count or 0
+        end
+    elseif inventorySystem == 'origen' then
+        return function(player, item, source)
+            return exports[origenInv]:getItemCount(source, item, false, false) or 0
         end
     else
         if Framework == 'esx' then
@@ -73,12 +87,19 @@ local CanCarryItem = function()
         end
     elseif inventorySystem == 'qb' then
         return function(player, item, count, slot, source)
-            local canAdd = exports[qbInv]:CanAddItem(source, item, count)
-            return canAdd
+            return exports[qbInv]:CanAddItem(source, item, count)
+        end
+    elseif inventorySystem == 'qs-pro' then
+        return function(player, item, count, metadata, source)
+            return exports[qsProInv]:CanCarryItem(source, item, count)
         end
     elseif inventorySystem == 'qs' then
-        return function(player, item, count, metadata, slot, source)
+        return function(player, item, count, slot, source)
             return exports[qsInv]:CanCarryItem(source, item, count)
+        end
+    elseif inventorySystem == 'origen' then
+        return function(player, item, count, metadata, source)
+            return exports[origenInv]:CanCarryItem(source, item, count)
         end
     else
         if Framework == 'esx' then
@@ -96,10 +117,7 @@ local CanCarryItem = function()
                 if not totalWeight then return false end
                 local itemInfo = QBCore.Shared.Items[item:lower()]
                 if not itemInfo then return false end
-                if (totalWeight + (itemInfo['weight'] * count)) <= 120000 then
-                    return true
-                end
-                return false
+                return (totalWeight + (itemInfo.weight * count)) <= 120000
             end
         else
             return function()
@@ -124,12 +142,20 @@ local AddItem = function()
         end
     elseif inventorySystem == 'qb' then
         return function(player, item, count, metadata, slot, source)
-            exports[qbInv]:AddItem(source, item, count, slot or false, metadata or false,'sd-inventory:AddItem')
+            exports[qbInv]:AddItem(source, item, count, slot or false, metadata or false, 'sd-inventory:AddItem')
             TriggerClientEvent('qb-inventory:client:ItemBox', source, QBCore.Shared.Items[item], 'add', count)
+        end
+    elseif inventorySystem == 'qs-pro' then
+        return function(player, item, count, metadata, slot, source)
+            return exports[qsProInv]:AddItem(source, item, count, slot or false, metadata or false)
         end
     elseif inventorySystem == 'qs' then
         return function(player, item, count, metadata, slot, source)
             return exports[qsInv]:AddItem(source, item, count, slot or false, metadata or false)
+        end
+    elseif inventorySystem == 'origen' then
+        return function(player, item, count, metadata, slot, source)
+            return exports[origenInv]:addItem(source, item, count, metadata, slot)
         end
     else
         if Framework == 'esx' then
@@ -165,11 +191,19 @@ local RemoveItem = function()
     elseif inventorySystem == 'qb' then
         return function(player, item, count, metadata, slot, source)
             exports[qbInv]:RemoveItem(source, item, count, slot or false, 'sd-inventory:RemoveItem')
-            TriggerClientEvent('qb-inventory:client:ItemBox', source, QBCore.Shared.Items[item], 'remove', count)
+            TriggerClientEvent('qb-inventory:client:ItemBox', source, QBCore.Shared.Items[item], "remove", count)
+        end
+    elseif inventorySystem == 'qs-pro' then
+        return function(player, item, count, metadata, slot, source)
+            return exports[qsProInv]:RemoveItem(source, item, count, slot or false, metadata or false)
         end
     elseif inventorySystem == 'qs' then
         return function(player, item, count, metadata, slot, source)
             return exports[qsInv]:RemoveItem(source, item, count, slot or false, metadata or false)
+        end
+    elseif inventorySystem == 'origen' then
+        return function(player, item, count, metadata, slot, source)
+            return exports[origenInv]:removeItem(source, item, count, metadata, slot)
         end
     else
         if Framework == 'esx' then
@@ -203,9 +237,14 @@ local RegisterUsableItem = function()
                 end
             end)
         end
-    elseif inventorySystem == 'qb' then
+    elseif inventorySystem == 'qs-pro' then
+        -- qs-inventory-pro server export: CreateUsableItem(item, cb) :contentReference[oaicite:5]{index=5}
         return function(item, cb)
-            QBCore.Functions.CreateUseableItem(item, cb)
+            return exports[qsProInv]:CreateUsableItem(item, cb)
+        end
+    elseif inventorySystem == 'origen' then
+        return function(item, cb)
+            return exports[origenInv]:CreateUseableItem(item, cb)
         end
     else
         if Framework == 'esx' then
@@ -261,8 +300,8 @@ end
 --- @param source number The player's server ID.
 --- @param item string The item's name.
 --- @param count number The amount of the item to add.
---- @param slot number|nil The inventory slot to add the item to, if applicable.
 --- @param metadata table|nil Additional metadata for the item, if applicable.
+--- @param slot number|nil The inventory slot to add the item to, if applicable.
 SD.Inventory.AddItem = function(source, item, count, metadata, slot)
     local player = SD.GetPlayer(source)
     if player then

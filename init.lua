@@ -1,3 +1,14 @@
+--[[
+    Code originally sourced from ox_lib (https://github.com/overextended/ox_lib).
+    This code has been modified and adapted for use in this project.
+    
+    This file is licensed under LGPL-3.0 or higher 
+    (<https://www.gnu.org/licenses/lgpl-3.0.en.html>).
+    
+    Copyright (c) 2025 Linden 
+    (<https://github.com/thelindat/fivem>).
+]]
+
 -- Global variable to store framework details
 local frameworkId, frameworkObj
 
@@ -39,11 +50,6 @@ if frameworkId == 'qb' then
 elseif frameworkId == 'esx' then
     _ENV['ESX'] = frameworkObj
 end
-
-
--- Detect and store the framework at the start
-frameworkId, frameworkObj = DetectFramework()
-if frameworkId == 'qb' then _ENV['QBCore'] = frameworkObj elseif frameworkId == 'esx' then _ENV['ESX'] = frameworkObj end
 
 local sd_lib = 'sd_lib'
 
